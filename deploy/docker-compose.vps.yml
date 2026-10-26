@@ -1,0 +1,7 @@
+# Used on a single server together with the main compose file:
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.vps.yml up -d --build
+# The web container listens only on localhost; the host's Nginx terminates HTTPS in front of it.
+services:
+  frontend:
+    ports: !override
+      - "127.0.0.1:8080:80"
