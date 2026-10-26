@@ -1,0 +1,68 @@
+# One command starts everything:  docker compose up --build
+# The web app is served on http://localhost:${WEB_PORT:-8080} and proxies /api to the backend.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pathway}
+      POSTGRES_USER: ${POSTGRES_USER:-pathway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pathway}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-pathway}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      FORCE_HTTPS: ${FORCE_HTTPS:-false}
+      ENABLE_DOCS: ${ENABLE_DOCS:-true}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-15}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-7}
+      MAX_FAILED_LOGINS: ${MAX_FAILED_LOGINS:-5}
+      LOCKOUT_MINUTES: ${LOCKOUT_MINUTES:-15}
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-10}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      MODEL_DIR: /data/models
+    volumes:
+      - modelstore:/data/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api/v1
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+  modelstore:
