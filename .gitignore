@@ -1,32 +1,18 @@
-# Secrets
+node_modules
+dist
+.env
+.env.local
+playwright-report
+test-results
+*.tsbuildinfo
+
+.venv/
+venv/
+node_modules/
 .env
 .env.*
 !.env.example
-
-# Python
 __pycache__/
-*.py[cod]
-.venv/
-venv/
-.pytest_cache/
-.ruff_cache/
-.coverage
-htmlcov/
 *.db
-
-# Trained models and local artefacts
-backend/model_store/
-ml/artifacts/
-ml/sample_data/uci_import.csv
-
-# Node
-node_modules/
-frontend/dist/
-frontend/playwright-report/
-frontend/test-results/
-*.tsbuildinfo
-
-# Editors and OS
-.vscode/
-.idea/
-.DS_Store
+model_store/
+dist/
